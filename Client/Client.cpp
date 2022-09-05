@@ -53,6 +53,30 @@ int main()
 	while (true)
 	{
 		//Todo
+		char sendBuffer[100] = "Hello, This is Client!";
+		if (send(clientSocket, sendBuffer, sizeof(sendBuffer), 0) == SOCKET_ERROR)
+		{
+			int32 errCode = WSAGetLastError();
+			printf("Send Error : %d\n", errCode);
+
+			return -1;
+		}
+
+		char recvBuffer[1000];
+
+		int32 recvLen = recv(clientSocket, recvBuffer, sizeof(recvBuffer), 0);
+
+		if (recvLen <= 0)
+		{
+			int32 errCode = WSAGetLastError();
+			printf("Recv Error : %d\n", errCode);
+
+			return -1;
+		}
+
+		printf("%s\n", recvBuffer);
+		printf("%d\n", recvLen);
+
 		Sleep(1000);
 	}
 

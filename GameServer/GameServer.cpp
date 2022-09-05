@@ -1,13 +1,113 @@
-﻿// GameServer.cpp : 이 파일에는 'main' 함수가 포함됩니다. 거기서 프로그램 실행이 시작되고 종료됩니다.
-//
-
+﻿
 #include <iostream>
 #include "pch.h"
 #include "CorePch.h"
 
+#include <Windows.h>
+#include <winsock2.h>
+#include <MSWSock.h>
+#include <WS2tcpip.h>
+
+#pragma comment(lib, "ws2_32.lib")
+
 int main()
 {
 	HelloWorld();
+
+	WSADATA wsaData;
+	WORD wVersionRequest = MAKEWORD(2, 2);
+
+	if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0)
+	{
+		printf("WSAStartup failed with error\n");
+
+		return -1;
+	}
+
+	SOCKET listenSocket = socket(AF_INET, SOCK_STREAM, 0);
+
+	if (listenSocket == INVALID_SOCKET)
+	{
+		int32 errCode = WSAGetLastError();
+		printf("ListenSocket Error %d", errCode);
+
+		return -1;
+	}
+
+	SOCKADDR_IN serverAddr;
+	memset(&serverAddr, 0, sizeof(serverAddr));
+	serverAddr.sin_family = AF_INET;
+
+	serverAddr.sin_addr.s_addr = htonl(INADDR_ANY);
+	//htos = host to network short
+	serverAddr.sin_port = htons(27015);
+
+	if (bind(listenSocket, (SOCKADDR*)&serverAddr, sizeof(serverAddr)) == SOCKET_ERROR)
+	{
+		int32 errCode = WSAGetLastError();
+		printf("Bind Error %d", errCode);
+
+		return -1;
+	}
+
+	if (listen(listenSocket, 10) == SOCKET_ERROR)
+	{
+		int32 errCode = WSAGetLastError();
+		printf("Listen Error %d", errCode);
+
+		return -1;
+	}
+
+	while (true)
+	{
+		SOCKADDR_IN clientAddr;
+		memset(&clientAddr, 0, sizeof(clientAddr));
+		int32 addrLen = sizeof(clientAddr);
+		SOCKET clientSocket = accept(listenSocket, (SOCKADDR*)&clientAddr, &addrLen);
+
+		if (clientSocket == INVALID_SOCKET)
+		{
+			int32 errCode = WSAGetLastError();
+			printf("Accept Error %d", errCode);
+
+			return -1;
+		}
+
+		printf("Client Enter\n");
+		char ipAddress[16];
+		inet_ntop(AF_INET, &clientAddr.sin_addr, ipAddress, sizeof(ipAddress));
+		printf("Client Connected IP : %s", ipAddress);
+
+		while (true)
+		{
+			char recvBuffer[1000];
+
+			int32 recvLen = recv(clientSocket, recvBuffer, sizeof(recvBuffer), 0);
+
+			if (recvLen <= 0)
+			{
+				int32 errCode = WSAGetLastError();
+				printf("Recv Error %d", errCode);
+
+				return -1;
+			}
+
+			printf("%s\n", recvBuffer);
+			printf("%d\n", recvLen);
+
+			char sendBuffer[100] = "Hello This is Server!";
+
+			if (send(clientSocket, sendBuffer, sizeof(sendBuffer), 0) == SOCKET_ERROR)
+			{
+				int32 errCode = WSAGetLastError();
+				printf("Send Error %d", errCode);
+
+				return -1;
+			}
+		}
+	}
+
+	WSACleanup();
 
 	return 0;
 }
